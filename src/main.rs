@@ -1,7 +1,7 @@
-use rayon::prelude::*;
+// use rayon::prelude::*;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{self, BufRead, BufWriter, Write};
+use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use std::ops::Add;
 
 #[derive(Debug)]
@@ -25,21 +25,20 @@ fn process_data(s: &str) -> (String, f32) {
     let mut splits = s.split(";");
     (
         splits.next().expect("error").to_string(),
-        splits.next().expect("error").parse::<f32>().unwrap(),
+        splits.next().expect("error").parse::<f32>().expect("error")
     )
 }
 
-fn main() {
-    // Open the file
-    let file = File::open("measurements.txt").unwrap();
-    // Read all lines of the file.
-    // FIXME: Reads all 14GB into ram. Change this to store few lines at a time
-    let mut iter = io::BufReader::new(file).lines().map(|l| l.unwrap());
+fn data_intake(input: &mut BufReader<File>) -> HashMap<String, Data> {
+    let mut buf = String::new();
+    let mut map:HashMap<String, Data> = HashMap::new();
 
-    let mut map: HashMap<String, Data> = HashMap::new();
-
-    while let Some(t) = iter.next() {
-        let (name, temp) = process_data(&t);
+    while let Ok(bytes) = input.read_line(&mut buf) {
+        if bytes == 0 {
+            break;
+        }
+        let line = buf.trim();
+        let (name, temp) = process_data(line);
         map.entry(name)
             .and_modify(|f| f.update(temp))
             .or_insert(Data {
@@ -48,8 +47,18 @@ fn main() {
                 sum: temp,
                 count: 1,
             });
+        buf.clear();
     }
+    map
+}
 
+fn main() {
+    // Open the file
+    let file = File::open("measurements.txt").unwrap();
+    // Read all lines of the file.
+    let mut file = io::BufReader::new(file);
+
+    let mut map: HashMap<String, Data> = data_intake(&mut file);
     let mut writer = BufWriter::new(std::io::stdout());
     let _ = writer.write_all(b"{");
 
@@ -68,7 +77,6 @@ fn main() {
             writer.write_all(b", ").unwrap();
         }
     });
-
 
     writer.write_all(b"}").unwrap();
     writer.flush().unwrap();
