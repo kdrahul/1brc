@@ -2,11 +2,9 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"log"
 	"os"
-	"runtime/pprof"
 	"strconv"
 	"strings"
 )
@@ -34,23 +32,7 @@ func (m *Measurement) calculate(station Station) {
 
 func main() {
 
-	var (
-		cpuProfile = flag.String("cpuprofile", "", "write CPU profile to file")
-		// revision   = flag.Int("revision", len(revisionFuncs), "revision of solution to run")
-		// goroutines = flag.Int("goroutines", 0, "num goroutines for parallel solutions (default NumCPU)")
-		// benchAll   = flag.Bool("benchall", false, "benchmark all solutions")
-	)
-	flag.Parse()
-	if *cpuProfile != "" {
-		f, err := os.Create(*cpuProfile)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
-	// filename := os.Args[1]
+	filename := os.Args[1]
 	cities := make(map[string]*Measurement)
 	writerFile, err := os.Create("result")
 	defer writerFile.Close()
